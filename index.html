@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tiny Breakout URL</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0b1320;
+      color: #e8edf7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    main {
+      max-width: 600px;
+    }
+    code {
+      background: #11182b;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🔗 Tiny Breakout (URL Bar Edition)</h1>
+    <p>Use <strong>←</strong>/<strong>→</strong> (or <strong>A</strong>/<strong>D</strong>) to move the paddle. Press <strong>R</strong> to restart.</p>
+    <p>The entire game renders inside the address bar by rewriting the URL each frame.</p>
+    <p>If the URL looks wild, that's the point. Enjoy!</p>
+  </main>
+  <script>
+    (() => {
+      const WIDTH = 28;
+      const PADDLE_W = 4;
+      const LEVEL_MASK = "1111111111111111111111111111".slice(0, WIDTH);
+      const BRICK_CHAR = "▣";
+      const BALL_CHAR = "•";
+      const EMPTY_CHAR = "_";
+
+      const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+      const defaultState = () => ({
+        bX: Math.floor(WIDTH / 2),
+        bY: 1,
+        bDX: 1,
+        bDY: -1,
+        pX: Math.floor(WIDTH / 2) - Math.ceil(PADDLE_W / 2),
+        br: LEVEL_MASK,
+        tick: 0,
+        score: 0,
+        over: false,
+      });
+
+      const parseState = () => {
+        const params = new URLSearchParams(location.search);
+        const fromUrl = {
+          bX: Number(params.get("bx")),
+          bY: Number(params.get("by")),
+          bDX: Number(params.get("dx")),
+          bDY: Number(params.get("dy")),
+          pX: Number(params.get("px")),
+          br: params.get("br"),
+          tick: Number(params.get("t")),
+          score: Number(params.get("s")),
+          over: params.get("over") === "1",
+        };
+        if (!fromUrl.br || fromUrl.br.length !== WIDTH) return defaultState();
+        if (Object.values(fromUrl).some((v) => Number.isNaN(v) && typeof v === "number")) {
+          return defaultState();
+        }
+        fromUrl.bX = clamp(fromUrl.bX, 0, WIDTH - 1);
+        fromUrl.pX = clamp(fromUrl.pX, 0, WIDTH - PADDLE_W);
+        return { ...defaultState(), ...fromUrl };
+      };
+
+      let state = parseState();
+      const pressed = new Set();
+
+      const updatePath = () => {
+        const row = Array.from(state.br).map((cell) =>
+          cell === "1" ? BRICK_CHAR : EMPTY_CHAR
+        );
+
+        for (let i = 0; i < PADDLE_W; i++) {
+          const idx = state.pX + i;
+          if (idx >= 0 && idx < WIDTH) row[idx] = "=";
+        }
+
+        const ballIdx = clamp(state.bX, 0, WIDTH - 1);
+        row[ballIdx] = BALL_CHAR;
+
+        const renderLine = row.join("");
+        const path = "/" + encodeURI(`TINY-BREAKOUT/${renderLine}` + (state.over ? "-GAME-OVER" : ""));
+
+        const params = new URLSearchParams();
+        params.set("bx", state.bX);
+        params.set("by", state.bY);
+        params.set("dx", state.bDX);
+        params.set("dy", state.bDY);
+        params.set("px", state.pX);
+        params.set("br", state.br);
+        params.set("t", state.tick);
+        params.set("s", state.score);
+        if (state.over) params.set("over", "1");
+
+        history.replaceState({}, "", `${path}?${params.toString()}`);
+      };
+
+      const reset = () => {
+        state = defaultState();
+        updatePath();
+      };
+
+      const handleInput = () => {
+        if (pressed.has("ArrowLeft") || pressed.has("a")) {
+          state.pX = clamp(state.pX - 1, 0, WIDTH - PADDLE_W);
+        }
+        if (pressed.has("ArrowRight") || pressed.has("d")) {
+          state.pX = clamp(state.pX + 1, 0, WIDTH - PADDLE_W);
+        }
+      };
+
+      const tick = () => {
+        handleInput();
+        if (state.over) {
+          updatePath();
+          return;
+        }
+
+        let nextX = state.bX + state.bDX;
+        let nextY = state.bY + state.bDY;
+
+        if (nextX < 0 || nextX >= WIDTH) {
+          state.bDX *= -1;
+          nextX = clamp(state.bX + state.bDX, 0, WIDTH - 1);
+        }
+
+        if (nextY < 0) {
+          state.bDY = 1;
+          nextY = 0;
+        }
+
+        if (nextY === 0) {
+          const hit = state.br[nextX] === "1";
+          if (hit) {
+            state.br =
+              state.br.slice(0, nextX) + "0" + state.br.slice(nextX + 1);
+            state.bDY = 1;
+            state.score += 1;
+          }
+        }
+
+        if (nextY >= 2) {
+          const withinPaddle =
+            nextX >= state.pX && nextX < state.pX + PADDLE_W;
+          if (withinPaddle) {
+            const offset = nextX - (state.pX + Math.floor(PADDLE_W / 2));
+            state.bDX = offset === 0 ? state.bDX : Math.sign(offset);
+            if (state.bDX === 0) state.bDX = 1;
+            state.bDY = -1;
+            nextY = 2;
+          } else if (nextY > 2) {
+            state.over = true;
+          }
+        }
+
+        state.bX = nextX;
+        state.bY = nextY;
+        state.tick += 1;
+        updatePath();
+      };
+
+      window.addEventListener("keydown", (e) => {
+        pressed.add(e.key);
+        if (e.key.toLowerCase() === "r") {
+          reset();
+        }
+      });
+
+      window.addEventListener("keyup", (e) => pressed.delete(e.key));
+
+      updatePath();
+      setInterval(tick, 120);
+    })();
+  </script>
+</body>
+</html>
