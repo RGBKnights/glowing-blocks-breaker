@@ -1,0 +1,19 @@
+{
+  "navigationFallback": {
+    "rewrite": "/",
+    "exclude": [
+      "/favicon.ico",
+      "/*.css",
+      "/*.js",
+      "/*.png",
+      "/*.jpg",
+      "/*.jpeg",
+      "/*.svg",
+      "/*.gif",
+      "/*.webp",
+      "/*.map",
+      "/*.txt",
+      "/*.json"
+    ]
+  }
+}
