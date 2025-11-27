@@ -45,7 +45,8 @@
   <main>
     <img src="card-01.png" class="logo" />
     <p>Use <strong>↑</strong>/<strong>↓</strong> (or <strong>W</strong>/<strong>S</strong>) to move the single-dot paddle up and down the four braille rows. Press <strong>R</strong> to restart.</p>
-    <p>The entire game renders inside the browser tab title: the paddle hugs the left, the ball travels horizontally, and bricks sit on the right. If you miss the ball its 💀!</p>
+    <p>The entire game renders inside the browser tab title: the paddle hugs the left, the ball travels horizontally, and bricks sit on the right.</p>
+    <p>If you miss the ball its <span title="Game Over">💀</span> can you clear all the blocks and claim <span title="Victory">🏆</span></p>
   </main>
   <script>
     (() => {
@@ -87,6 +88,7 @@
           tick: 0,
           score: 0,
           over: false,
+          win: false,
         };
       };
 
@@ -117,7 +119,7 @@
         });
 
         const renderLine = row.join("");
-        const frameLabel = `${renderLine}${state.over ? "💀" : ""}`;
+        const frameLabel = `${renderLine}${state.over ? "💀" : state.win ? "🏆" : ""}`;
         document.title = frameLabel;
       };
 
@@ -139,7 +141,7 @@
 
       const tick = () => {
         handleInput();
-        if (state.over) {
+        if (state.over || state.win) {
           renderTitle();
           return;
         }
@@ -179,6 +181,9 @@
             nextY = randomNudgeY(nextY);
             state.bDY = Math.sign(nextY - state.bY) || state.bDY;
             state.score += 1;
+            if (!/[1-9a-f]/i.test(state.br)) {
+              state.win = true;
+            }
           }
         }
 
