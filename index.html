@@ -202,6 +202,13 @@
 
       window.addEventListener("keyup", (e) => pressed.delete(e.key));
 
+      window.addEventListener("beforeunload", () => {
+        clearInterval(loopId);
+        clearInterval(inputLoopId);
+        loopId = null;
+        inputLoopId = null;
+      });
+
 
       renderUrl();
       inputLoopId = setInterval(handleInput, 25);
