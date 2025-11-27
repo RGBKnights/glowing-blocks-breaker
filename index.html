@@ -103,7 +103,7 @@
         });
 
         const renderLine = row.join("");
-        const frameLabel = `${renderLine}${state.over ? "" : ""}`; // GAME-OVER
+        const frameLabel = `${renderLine}${state.over ? "💀" : ""}`; // GAME-OVER
         const pathBase = "/TINY-BREAKOUT";
 
         const params = new URLSearchParams();
