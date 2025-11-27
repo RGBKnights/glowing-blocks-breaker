@@ -66,6 +66,40 @@
       transform: translateY(0);
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
     }
+    #touch-controls {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+    }
+    .touch-btn {
+      width: 64px;
+      height: 64px;
+      font-size: 26px;
+      font-weight: 700;
+      color: #e8edf7;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+      touch-action: none;
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    }
+    .touch-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+    @media (pointer: coarse) {
+      #start-btn {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
@@ -194,6 +228,67 @@
         }
       };
 
+      const attachTouchControls = () => {
+        const isTouchCapable =
+          window.matchMedia("(pointer: coarse)").matches ||
+          "ontouchstart" in window ||
+          navigator.maxTouchPoints > 0;
+
+        if (!isTouchCapable) return;
+
+        const container = document.createElement("div");
+        container.id = "touch-controls";
+
+        const makeActionButton = (label, onPress, aria) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "touch-btn";
+          btn.textContent = label;
+          btn.setAttribute("aria-label", aria);
+
+          btn.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            onPress();
+          });
+          btn.addEventListener("click", (e) => e.preventDefault());
+
+          return btn;
+        };
+
+        const makeButton = (label, key, aria) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "touch-btn";
+          btn.textContent = label;
+          btn.setAttribute("aria-label", aria);
+
+          const press = () => {
+            pressed.add(key);
+            handleInput();
+          };
+          const release = () => pressed.delete(key);
+
+          btn.addEventListener("pointerdown", (e) => {
+            e.preventDefault();
+            press();
+          });
+          btn.addEventListener("pointerup", release);
+          btn.addEventListener("pointercancel", release);
+          btn.addEventListener("pointerleave", release);
+          btn.addEventListener("click", (e) => e.preventDefault());
+
+          return btn;
+        };
+
+        container.append(
+          makeActionButton("⟳", startGame, "Start or restart game"),
+          makeButton("↑", "ArrowUp", "Move paddle up"),
+          makeButton("↓", "ArrowDown", "Move paddle down")
+        );
+
+        document.body.appendChild(container);
+      };
+
       const tick = () => {
         if (state.over || state.win) {
           renderUrl();
@@ -276,6 +371,7 @@
       const startButton = document.getElementById("start-btn");
       if (startButton) startButton.addEventListener("click", startGame);
 
+      attachTouchControls();
       renderUrl();
     })();
   </script>
