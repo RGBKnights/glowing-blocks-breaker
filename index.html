@@ -4,26 +4,23 @@
   <title>Tiny Breakout</title>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Tiny BREAKOUT Bar by RGBKnights. Open source on GitHub. Made with Braille and 🥏">
+  <meta name="description" content="Tiny 🥏 Braille Bar by RGBKnights. Play breakout in browser's tab tile.">
   <meta property="og:locale" content="en_US" />
 	<meta property="og:type" content="article" />
   <meta property="og:url" content="https://bb.rgbknights.com/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="RGBKnights" />
   <meta property="og:title" content="Tiny BREAKOUT - RGBKnights">
-  <meta property="og:description" content="Tiny BREAKOUT Bar by RGBKnights. Open source on GitHub. Made with Braille and 🥏 ">
-  <meta property="og:image" content="https://bb.rgbknights.com/card.png">
+  <meta property="og:description" content="Tiny 🥏 Braille Bar by RGBKnights. Play breakout in browser's tab tile.">
+  <meta property="og:image" content="https://bb.rgbknights.com/card-01.png">
   <meta property="og:image:width" content="1828" />
 	<meta property="og:image:height" content="972" />
   <meta property="og:image:type" content="image/png" />
   <meta name="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="https://bb.rgbknights.com/">
   <meta name="twitter:title" content="Tiny BREAKOUT - RGBKnights">
-  <meta name="twitter:description" content="Tiny BREAKOUT Bar by RGBKnights. Open source on GitHub. Made with Braille and 🥏">
-  <meta name="twitter:image" content="https://bb.rgbknights.com/card.png">
-
-
-
+  <meta name="twitter:description" content="Tiny 🥏 Braille Bar by RGBKnights. Play breakout in browser's tab tile.">
+  <meta name="twitter:image" content="https://bb.rgbknights.com/card-01.png">
   <style>
     body {
       margin: 0 !important;
@@ -50,8 +47,7 @@
   <main>
     <h1>🔗 Tiny Breakout (Tab Title)</h1>
     <p>Use <strong>↑</strong>/<strong>↓</strong> (or <strong>W</strong>/<strong>S</strong>) to move the single-dot paddle up and down the four braille rows. Press <strong>R</strong> to restart.</p>
-    <p>The entire game renders inside the address bar by rewriting the URL each frame: the paddle hugs the left, the ball travels horizontally, and bricks sit on the right.</p>
-    <p>If the URL looks wild, that's the point. Enjoy!</p>
+    <p>The entire game renders inside the browser tab title: the paddle hugs the left, the ball travels horizontally, and bricks sit on the right. If you miss the ball its 💀!</p>
   </main>
   <script>
     (() => {
@@ -109,7 +105,7 @@
 
       const brickMaskAt = (x) => Number.parseInt(state.br[x] || "0", 16) & ROW_MASK;
 
-      const updatePath = () => {
+      const renderTitle = () => {
         const ballChar = toBraille(1 << state.bY);
         const row = Array.from(state.br).map((cell, x) => {
           let mask = Number.parseInt(cell, 16) & ROW_MASK;
@@ -123,28 +119,13 @@
         });
 
         const renderLine = row.join("");
-        const frameLabel = `${renderLine}${state.over ? "💀" : ""}`; // GAME-OVER
-        const pathBase = "/TINY-BREAKOUT";
-
-        const params = new URLSearchParams();
-        params.set("bx", state.bX);
-        params.set("by", state.bY);
-        params.set("dx", state.bDX);
-        params.set("dy", state.bDY);
-        params.set("py", state.pY);
-        params.set("br", state.br);
-        params.set("t", state.tick);
-        params.set("s", state.score);
-        if (state.over) params.set("over", "1");
-
-        const nextUrl = `${pathBase}?${params.toString()}#${frameLabel}`;
-        history.replaceState({}, "", nextUrl);
+        const frameLabel = `${renderLine}${state.over ? "💀" : ""}`;
         document.title = frameLabel;
       };
 
       const reset = () => {
         state = defaultState();
-        updatePath();
+        renderTitle();
       };
 
       const handleInput = () => {
@@ -161,7 +142,7 @@
       const tick = () => {
         handleInput();
         if (state.over) {
-          updatePath();
+          renderTitle();
           return;
         }
 
@@ -206,7 +187,7 @@
         state.bX = nextX;
         state.bY = nextY;
         state.tick += 1;
-        updatePath();
+        renderTitle();
       };
 
       window.addEventListener("keydown", (e) => {
@@ -219,7 +200,7 @@
       window.addEventListener("keyup", (e) => pressed.delete(e.key));
 
 
-      updatePath();
+      renderTitle();
       loopId = setInterval(tick, 160);
     })();
   </script>
