@@ -6,6 +6,7 @@
   <title>Tiny Breakout URL</title>
   <style>
     body {
+      margin: 0 !important;
       font-family: system-ui, sans-serif;
       background: #0b1320;
       color: #e8edf7;
@@ -23,85 +24,105 @@
       padding: 0.25rem 0.5rem;
       border-radius: 6px;
     }
+    button {
+      background: #1f2a44;
+      color: #e8edf7;
+      border: 1px solid #2f3c5f;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 120ms ease, transform 120ms ease;
+    }
+    button:hover {
+      background: #273553;
+      transform: translateY(-1px);
+    }
+    button:active {
+      transform: translateY(0);
+    }
   </style>
 </head>
 <body>
   <main>
     <h1>🔗 Tiny Breakout (URL Bar Edition)</h1>
-    <p>Use <strong>↑</strong>/<strong>↓</strong> (or <strong>W</strong>/<strong>S</strong>) to move the single-dot paddle up and down the three braille rows. Press <strong>R</strong> to restart.</p>
+    <p>Use <strong>↑</strong>/<strong>↓</strong> (or <strong>W</strong>/<strong>S</strong>) to move the single-dot paddle up and down the four braille rows. Press <strong>R</strong> to restart.</p>
     <p>The entire game renders inside the address bar by rewriting the URL each frame: the paddle hugs the left, the ball travels horizontally, and bricks sit on the right.</p>
     <p>If the URL looks wild, that's the point. Enjoy!</p>
+    <p><button id="reload-btn" type="button">Reload page (reset/block URL bar)</button></p>
   </main>
   <script>
     (() => {
-      const WIDTH = 128;
+      const WIDTH = 32; // keep braille line short enough for tab title
+      const HEIGHT = 4;
       const PADDLE_X = 0;
-      const BALL_CHAR = "•";
-      const EMPTY_CHAR = "_";
+      const EMPTY_CHAR = String.fromCodePoint(0x2007); // figure space stays visible without %20 encoding
+      const BRICK_START = 5; // small padding then mostly blocks
+      const BRICK_COLS = Math.max(1, WIDTH - BRICK_START);
+      const DOT_BITS = [0x1, 0x2, 0x4, 0x40]; // braille dots 1,2,3,7 (left column, four high)
+      const ROW_MASK = (1 << HEIGHT) - 1;
 
       const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
+      const randomNudgeY = (y) => {
+        const delta = Math.random() < 0.5 ? -1 : 1;
+        const nudged = clamp(y + delta, 0, HEIGHT - 1);
+        if (nudged === y && (y === 0 || y === HEIGHT - 1)) {
+          return clamp(y - delta, 0, HEIGHT - 1);
+        }
+        return nudged;
+      };
+
       const buildBricks = () => {
         const cols = Array(WIDTH).fill("0");
-        for (let x = WIDTH - 32; x < WIDTH; x++) cols[x] = "7";
+        for (let x = BRICK_START; x < WIDTH; x++) cols[x] = "f";
         return cols.join("");
       };
 
-      const defaultState = () => ({
-        bX: Math.floor(WIDTH / 2),
-        bY: 1,
-        bDX: 1,
-        bDY: 1,
-        pY: 1,
-        br: buildBricks(),
-        tick: 0,
-        score: 0,
-        over: false,
-      });
-
-      const toBraille = (mask) => String.fromCodePoint(0x2800 | mask);
-
-      const parseState = () => {
-        const params = new URLSearchParams(location.search);
-        const fromUrl = {
-          bX: Number(params.get("bx")),
-          bY: Number(params.get("by")),
-          bDX: Number(params.get("dx")),
-          bDY: Number(params.get("dy")),
-          pY: Number(params.get("py")),
-          br: params.get("br"),
-          tick: Number(params.get("t")),
-          score: Number(params.get("s")),
-          over: params.get("over") === "1",
+      const defaultState = () => {
+        const startY = Math.floor(HEIGHT / 2);
+        return {
+          bX: PADDLE_X, // start on the paddle
+          bY: startY,
+          bDX: 1, // head right to start
+          bDY: 1,
+          pY: startY,
+          br: buildBricks(),
+          tick: 0,
+          score: 0,
+          over: false,
         };
-        if (!fromUrl.br || fromUrl.br.length !== WIDTH) return defaultState();
-        if (Object.values(fromUrl).some((v) => Number.isNaN(v) && typeof v === "number")) {
-          return defaultState();
-        }
-        fromUrl.bX = clamp(fromUrl.bX, 0, WIDTH - 1);
-        fromUrl.pY = clamp(fromUrl.pY, 0, 2);
-        return { ...defaultState(), ...fromUrl };
       };
 
-      let state = parseState();
+      const toBraille = (mask) => {
+        let brailleMask = 0;
+        for (let i = 0; i < HEIGHT; i += 1) {
+          if (mask & (1 << i)) brailleMask |= DOT_BITS[i];
+        }
+        return String.fromCodePoint(0x2800 | brailleMask);
+      };
+
+      let state = defaultState();
       const pressed = new Set();
 
-      const brickMaskAt = (x) => Number.parseInt(state.br[x] || "0", 10) & 0b111;
+      const brickMaskAt = (x) => Number.parseInt(state.br[x] || "0", 16) & ROW_MASK;
 
       const updatePath = () => {
+        const ballChar = toBraille(1 << state.bY);
         const row = Array.from(state.br).map((cell, x) => {
-          let mask = Number.parseInt(cell, 10) & 0b111;
+          let mask = Number.parseInt(cell, 16) & ROW_MASK;
           const hasPaddle = x === PADDLE_X;
           const hasBall = x === state.bX;
           if (hasPaddle) mask |= 1 << state.pY;
           if (hasBall) mask |= 1 << state.bY;
           const char = mask ? toBraille(mask) : EMPTY_CHAR;
           const onlyBall = hasBall && !hasPaddle && mask === (1 << state.bY);
-          return onlyBall ? BALL_CHAR : char;
+          return onlyBall ? ballChar : char;
         });
 
         const renderLine = row.join("");
-        const path = "/" + encodeURI(`TINY-BREAKOUT/${renderLine}` + (state.over ? "-GAME-OVER" : ""));
+        const frameLabel = `${renderLine}${state.over ? "-GAME-OVER" : ""}`;
+        const pathBase = "/TINY-BREAKOUT";
 
         const params = new URLSearchParams();
         params.set("bx", state.bX);
@@ -114,7 +135,9 @@
         params.set("s", state.score);
         if (state.over) params.set("over", "1");
 
-        history.replaceState({}, "", `${path}?${params.toString()}`);
+        const nextUrl = `${pathBase}?${params.toString()}#${frameLabel}`;
+        history.replaceState({}, "", nextUrl);
+        document.title = frameLabel;
       };
 
       const reset = () => {
@@ -124,12 +147,14 @@
 
       const handleInput = () => {
         if (pressed.has("ArrowUp") || pressed.has("w")) {
-          state.pY = clamp(state.pY + 1, 0, 2);
+          state.pY = clamp(state.pY - 1, 0, HEIGHT - 1);
         }
         if (pressed.has("ArrowDown") || pressed.has("s")) {
-          state.pY = clamp(state.pY - 1, 0, 2);
+          state.pY = clamp(state.pY + 1, 0, HEIGHT - 1);
         }
       };
+
+      let loopId = null;
 
       const tick = () => {
         handleInput();
@@ -141,9 +166,9 @@
         let nextX = state.bX + state.bDX;
         let nextY = state.bY + state.bDY;
 
-        if (nextY > 2 || nextY < 0) {
+        if (nextY > HEIGHT - 1 || nextY < 0) {
           state.bDY *= -1;
-          nextY = clamp(state.bY + state.bDY, 0, 2);
+          nextY = clamp(state.bY + state.bDY, 0, HEIGHT - 1);
         }
 
         if (nextX >= WIDTH) {
@@ -155,19 +180,23 @@
           if (state.bY === state.pY) {
             state.bDX = 1;
             nextX = 0;
+            nextY = randomNudgeY(nextY);
+            state.bDY = Math.sign(nextY - state.bY) || state.bDY;
           } else {
             state.over = true;
           }
         }
 
-        if (!state.over && nextX >= WIDTH - 32) {
+        if (!state.over && nextX >= BRICK_START) {
           const mask = brickMaskAt(nextX);
           const brickBit = 1 << nextY;
           if (mask & brickBit) {
             const newMask = mask & ~brickBit;
             state.br =
-              state.br.slice(0, nextX) + newMask.toString(10) + state.br.slice(nextX + 1);
+              state.br.slice(0, nextX) + newMask.toString(16) + state.br.slice(nextX + 1);
             state.bDX = -1;
+            nextY = randomNudgeY(nextY);
+            state.bDY = Math.sign(nextY - state.bY) || state.bDY;
             state.score += 1;
           }
         }
@@ -187,8 +216,20 @@
 
       window.addEventListener("keyup", (e) => pressed.delete(e.key));
 
+      const reloadBtn = document.getElementById("reload-btn");
+      if (reloadBtn) {
+        reloadBtn.addEventListener("click", () => {
+          if (loopId !== null) {
+            clearInterval(loopId);
+            loopId = null;
+          }
+          history.replaceState({}, "", `${location.origin}/`);
+          document.title = "Tiny Breakout URL";
+        });
+      }
+
       updatePath();
-      setInterval(tick, 120);
+      loopId = setInterval(tick, 120);
     })();
   </script>
 </body>
