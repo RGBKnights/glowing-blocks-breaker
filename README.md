@@ -5,7 +5,7 @@ A tiny Breakout-inspired toy that renders entirely in the browser URL bar. The p
 ## Play
 
 1. Open `index.html` in your browser (or serve the folder with any static file server).
-2. Watch the URL bar—bricks, ball, and paddle are drawn as glyphs in the path.
+2. Watch the URL bar—three rows of Braille brick glyphs, the ball, and the paddle are drawn as glyphs in the path.
 3. Use **←/→** or **A/D** to move the paddle. Press **R** to restart after a miss.
 
 ### How it works

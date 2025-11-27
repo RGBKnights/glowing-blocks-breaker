@@ -34,14 +34,14 @@
   </main>
   <script>
     (() => {
-      const WIDTH = 28;
-      const PADDLE_W = 4;
-      const LEVEL_MASK = "1111111111111111111111111111".slice(0, WIDTH);
-      const BRICK_CHAR = "▣";
+      const WIDTH = 128;
+      const PADDLE_W = 6;
       const BALL_CHAR = "•";
       const EMPTY_CHAR = "_";
 
       const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+      const fullBrickString = () => "7".repeat(WIDTH);
 
       const defaultState = () => ({
         bX: Math.floor(WIDTH / 2),
@@ -49,11 +49,13 @@
         bDX: 1,
         bDY: -1,
         pX: Math.floor(WIDTH / 2) - Math.ceil(PADDLE_W / 2),
-        br: LEVEL_MASK,
+        br: fullBrickString(),
         tick: 0,
         score: 0,
         over: false,
       });
+
+      const toBraille = (mask) => String.fromCodePoint(0x2800 | mask);
 
       const parseState = () => {
         const params = new URLSearchParams(location.search);
@@ -80,10 +82,13 @@
       let state = parseState();
       const pressed = new Set();
 
+      const brickMaskAt = (x) => Number.parseInt(state.br[x] || "0", 10) & 0b111;
+
       const updatePath = () => {
-        const row = Array.from(state.br).map((cell) =>
-          cell === "1" ? BRICK_CHAR : EMPTY_CHAR
-        );
+        const row = Array.from(state.br).map((cell) => {
+          const mask = Number.parseInt(cell, 10) & 0b111;
+          return mask ? toBraille(mask) : EMPTY_CHAR;
+        });
 
         for (let i = 0; i < PADDLE_W; i++) {
           const idx = state.pX + i;
@@ -144,17 +149,19 @@
           nextY = 0;
         }
 
-        if (nextY === 0) {
-          const hit = state.br[nextX] === "1";
-          if (hit) {
+        if (nextY <= 2) {
+          const mask = brickMaskAt(nextX);
+          const brickBit = 1 << nextY;
+          if (mask & brickBit) {
+            const newMask = mask & ~brickBit;
             state.br =
-              state.br.slice(0, nextX) + "0" + state.br.slice(nextX + 1);
+              state.br.slice(0, nextX) + newMask.toString(10) + state.br.slice(nextX + 1);
             state.bDY = 1;
             state.score += 1;
           }
         }
 
-        if (nextY >= 2) {
+        if (nextY >= 3) {
           const withinPaddle =
             nextX >= state.pX && nextX < state.pX + PADDLE_W;
           if (withinPaddle) {
@@ -162,8 +169,8 @@
             state.bDX = offset === 0 ? state.bDX : Math.sign(offset);
             if (state.bDX === 0) state.bDX = 1;
             state.bDY = -1;
-            nextY = 2;
-          } else if (nextY > 2) {
+            nextY = 3;
+          } else if (nextY > 3) {
             state.over = true;
           }
         }
