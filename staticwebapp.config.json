@@ -3,6 +3,7 @@
     "rewrite": "/",
     "exclude": [
       "/favicon.ico",
+      "/card.png",
       "/*.css",
       "/*.js",
       "/*.png",
