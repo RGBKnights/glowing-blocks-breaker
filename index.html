@@ -4,14 +4,14 @@
   <title>Tiny Breakout</title>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Tiny Braille Bar by RGBKnights. Play breakout in browser's tab tile.">
+  <meta name="description" content="Tiny Braille Bar by RGBKnights. Play breakout in your URL bar.">
   <meta property="og:locale" content="en_US" />
 	<meta property="og:type" content="article" />
   <meta property="og:url" content="https://bb.rgbknights.com/">
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="RGBKnights" />
   <meta property="og:title" content="Tiny BREAKOUT - RGBKnights">
-  <meta property="og:description" content="Tiny Braille Bar by RGBKnights. Play breakout in browser's tab tile.">
+  <meta property="og:description" content="Tiny Braille Bar by RGBKnights. Play breakout in your URL bar.">
   <meta property="og:image" content="https://bb.rgbknights.com/card-01.png">
   <meta property="og:image:width" content="600" />
 	<meta property="og:image:height" content="319" />
@@ -19,7 +19,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="https://bb.rgbknights.com/">
   <meta name="twitter:title" content="Tiny BREAKOUT - RGBKnights">
-  <meta name="twitter:description" content="Tiny Braille Bar by RGBKnights. Play breakout in browser's tab tile.">
+  <meta name="twitter:description" content="Tiny Braille Bar by RGBKnights. Play breakout in your URL bar.">
   <meta name="twitter:image" content="https://bb.rgbknights.com/card-01.png">
   <style>
     body {
@@ -45,12 +45,12 @@
   <main>
     <img src="card-01.png" class="logo" />
     <p>Use <strong>↑</strong>/<strong>↓</strong> (or <strong>W</strong>/<strong>S</strong>) to move the single-dot paddle up and down the four braille rows. Press <strong>R</strong> to restart.</p>
-    <p>The entire game renders inside the browser tab title: the paddle hugs the left, the ball travels horizontally, and bricks sit on the right.</p>
+    <p>The entire game renders inside the browser URL bar: the paddle hugs the left, the ball travels horizontally, and bricks sit on the right.</p>
     <p>If you miss the ball its <span title="Game Over">💀</span> can you clear all the blocks and claim <span title="Victory">🏆</span></p>
   </main>
   <script>
     (() => {
-      const WIDTH = 16; // keep braille line short enough for tab title
+      const WIDTH = 16; // keep braille line short enough for URL bar
       const HEIGHT = 4;
       const PADDLE_X = 0;
       const EMPTY_CHAR = String.fromCodePoint(0x2007); // figure space stays visible without %20 encoding
@@ -105,7 +105,7 @@
 
       const brickMaskAt = (x) => Number.parseInt(state.br[x] || "0", 16) & ROW_MASK;
 
-      const renderTitle = () => {
+      const renderUrl = () => {
         const ballChar = toBraille(1 << state.bY);
         const row = Array.from(state.br).map((cell, x) => {
           let mask = Number.parseInt(cell, 16) & ROW_MASK;
@@ -120,12 +120,12 @@
 
         const renderLine = row.join("");
         const frameLabel = `${renderLine}${state.over ? "💀" : state.win ? "🏆" : ""}`;
-        document.title = frameLabel;
+        history.replaceState(null, "", `#${frameLabel}`);
       };
 
       const reset = () => {
         state = defaultState();
-        renderTitle();
+        renderUrl();
       };
 
       const handleInput = () => {
@@ -138,11 +138,11 @@
       };
 
       let loopId = null;
+      let inputLoopId = null;
 
       const tick = () => {
-        handleInput();
         if (state.over || state.win) {
-          renderTitle();
+          renderUrl();
           return;
         }
 
@@ -190,7 +190,7 @@
         state.bX = nextX;
         state.bY = nextY;
         state.tick += 1;
-        renderTitle();
+        renderUrl();
       };
 
       window.addEventListener("keydown", (e) => {
@@ -202,8 +202,16 @@
 
       window.addEventListener("keyup", (e) => pressed.delete(e.key));
 
+      window.addEventListener("beforeunload", () => {
+        clearInterval(loopId);
+        clearInterval(inputLoopId);
+        loopId = null;
+        inputLoopId = null;
+      });
 
-      renderTitle();
+
+      renderUrl();
+      inputLoopId = setInterval(handleInput, 25);
       loopId = setInterval(tick, 160);
     })();
   </script>
