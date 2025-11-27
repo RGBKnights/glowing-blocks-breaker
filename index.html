@@ -3,29 +3,29 @@
 <head>
   <title>Tiny Breakout</title>
   <meta charset="UTF-8" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🥏</text></svg>">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Tiny Braille Bar by RGBKnights. Play breakout in your URL bar.">
+  <meta name="description" content="Tiny Braille Bar. Play breakout in your URL bar.">
   <meta property="og:locale" content="en_US" />
-	<meta property="og:type" content="article" />
+  <meta property="og:type" content="article" />
   <meta property="og:url" content="https://bb.rgbknights.com/">
-  <meta property="og:type" content="article">
   <meta property="og:site_name" content="RGBKnights" />
   <meta property="og:title" content="Tiny BREAKOUT - RGBKnights">
-  <meta property="og:description" content="Tiny Braille Bar by RGBKnights. Play breakout in your URL bar.">
-  <meta property="og:image" content="https://bb.rgbknights.com/card-01.png">
+  <meta property="og:description" content="Tiny Braille. Play breakout in your URL bar.">
+  <meta property="og:image" content="https://bb.rgbknights.com/card02.png">
   <meta property="og:image:width" content="600" />
-	<meta property="og:image:height" content="319" />
+  <meta property="og:image:height" content="319" />
   <meta property="og:image:type" content="image/png" />
   <meta name="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="https://bb.rgbknights.com/">
   <meta name="twitter:title" content="Tiny BREAKOUT - RGBKnights">
-  <meta name="twitter:description" content="Tiny Braille Bar by RGBKnights. Play breakout in your URL bar.">
-  <meta name="twitter:image" content="https://bb.rgbknights.com/card-01.png">
+  <meta name="twitter:description" content="Tiny Braille Bar. Play breakout in your URL bar.">
+  <meta name="twitter:image" content="https://bb.rgbknights.com/card02.png">
   <style>
     body {
       margin: 0 !important;
       font-family: system-ui, sans-serif;
-      background: #2D2D2F;
+      background: #292629;
       color: #e8edf7;
       display: flex;
       align-items: center;
@@ -38,25 +38,65 @@
     }
     .logo {
       width: 600px;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto 1.5rem;
+    }
+    #start-btn {
+      margin-top: 12px;
+      padding: 12px 28px;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #0d0d0f;
+      background: linear-gradient(135deg, #37D3FE, #3981BB);
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+      transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+    }
+    #start-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.3);
+      filter: brightness(1.03);
+    }
+    #start-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
     }
   </style>
 </head>
 <body>
   <main>
-    <img src="card-01.png" class="logo" />
-    <p>Use <strong>↑</strong>/<strong>↓</strong> (or <strong>W</strong>/<strong>S</strong>) to move the single-dot paddle up and down the four braille rows. Press <strong>R</strong> to restart.</p>
-    <p>The entire game renders inside the browser URL bar: the paddle hugs the left, the ball travels horizontally, and bricks sit on the right.</p>
-    <p>If you miss the ball its <span title="Game Over">💀</span> can you clear all the blocks and claim <span title="Victory">🏆</span></p>
+    <img src="card02.png" class="logo" alt="Tiny Breakout social card" />
+    <p>
+      Use <strong>↑</strong>/<strong>↓</strong> (or <strong>W</strong>/<strong>S</strong>) to move the single-dot paddle up and down the four braille rows.
+      Press <strong>Enter</strong> to start or reset.
+    </p>
+    <p>
+      The entire game renders inside the browser URL bar: the paddle hugs the left, the ball travels horizontally,
+      and bricks sit on the right.
+    </p>
+    <p>
+      If you miss the ball its Game Over! <span title="Game Over">💀</span>
+      <br />
+      Can you clear all the blocks and claim Victory! <span title="Victory">🏆</span>
+    </p>
+    <p>
+      <button id="start-btn" type="button">Start</button>
+    </p>
   </main>
   <script>
     (() => {
-      const WIDTH = 16; // keep braille line short enough for URL bar
+      const WIDTH = 32;
       const HEIGHT = 4;
       const PADDLE_X = 0;
-      const EMPTY_CHAR = String.fromCodePoint(0x2007); // figure space stays visible without %20 encoding
-      const BRICK_START = 5; // small padding then mostly blocks
+
+      const BRICK_START = WIDTH / 4;
       const BRICK_COLS = Math.max(1, WIDTH - BRICK_START);
-      const DOT_BITS = [0x1, 0x2, 0x4, 0x40]; // braille dots 1,2,3,7 (left column, four high)
+      const DOT_BITS = [0x1, 0x2, 0x4, 0x40];
       const ROW_MASK = (1 << HEIGHT) - 1;
 
       const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -77,11 +117,11 @@
       };
 
       const defaultState = () => {
-        const startY = Math.floor(HEIGHT / 2);
+        const startY = Math.floor(Math.random() * HEIGHT);
         return {
-          bX: PADDLE_X, // start on the paddle
+          bX: PADDLE_X,
           bY: startY,
-          bDX: 1, // head right to start
+          bDX: 1,
           bDY: 1,
           pY: startY,
           br: buildBricks(),
@@ -103,24 +143,41 @@
       let state = defaultState();
       const pressed = new Set();
 
-      const brickMaskAt = (x) => Number.parseInt(state.br[x] || "0", 16) & ROW_MASK;
+      const brickMaskAt = (x) =>
+        Number.parseInt(state.br[x] || "0", 16) & ROW_MASK;
+
+      let loopId = null;
+      let inputLoopId = null;
+
+      const stopLoops = () => {
+        clearInterval(loopId);
+        clearInterval(inputLoopId);
+        loopId = null;
+        inputLoopId = null;
+      };
 
       const renderUrl = () => {
         const ballChar = toBraille(1 << state.bY);
+
         const row = Array.from(state.br).map((cell, x) => {
           let mask = Number.parseInt(cell, 16) & ROW_MASK;
           const hasPaddle = x === PADDLE_X;
           const hasBall = x === state.bX;
+
           if (hasPaddle) mask |= 1 << state.pY;
           if (hasBall) mask |= 1 << state.bY;
-          const char = mask ? toBraille(mask) : EMPTY_CHAR;
-          const onlyBall = hasBall && !hasPaddle && mask === (1 << state.bY);
+
+          // Empty cells render as double underscores to avoid URL encoding
+          const char = mask ? toBraille(mask) : "__";
+
+          const onlyBall =
+            hasBall && !hasPaddle && mask === (1 << state.bY);
           return onlyBall ? ballChar : char;
         });
 
         const renderLine = row.join("");
-        const frameLabel = `${renderLine}${state.over ? "💀" : state.win ? "🏆" : ""}`;
-        history.replaceState(null, "", `#${frameLabel}`);
+        const frameLabel = `${state.over ? "💀" : state.win ? "🏆" : "🥏"}${renderLine}`;
+        history.replaceState(null, "", `${frameLabel}`);
       };
 
       const reset = () => {
@@ -136,9 +193,6 @@
           state.pY = clamp(state.pY + 1, 0, HEIGHT - 1);
         }
       };
-
-      let loopId = null;
-      let inputLoopId = null;
 
       const tick = () => {
         if (state.over || state.win) {
@@ -176,11 +230,15 @@
           if (mask & brickBit) {
             const newMask = mask & ~brickBit;
             state.br =
-              state.br.slice(0, nextX) + newMask.toString(16) + state.br.slice(nextX + 1);
+              state.br.slice(0, nextX) +
+              newMask.toString(16) +
+              state.br.slice(nextX + 1);
+
             state.bDX = -1;
             nextY = randomNudgeY(nextY);
             state.bDY = Math.sign(nextY - state.bY) || state.bDY;
             state.score += 1;
+
             if (!/[1-9a-f]/i.test(state.br)) {
               state.win = true;
             }
@@ -193,26 +251,32 @@
         renderUrl();
       };
 
+      const startGame = () => {
+        stopLoops();
+        pressed.clear();
+        reset();
+        inputLoopId = setInterval(handleInput, 100);
+        loopId = setInterval(tick, 200);
+      };
+
       window.addEventListener("keydown", (e) => {
         pressed.add(e.key);
-        if (e.key.toLowerCase() === "r") {
-          reset();
+        if (e.key === "Enter") {
+          if (!loopId && !inputLoopId) startGame();
+          else reset();
         }
       });
 
       window.addEventListener("keyup", (e) => pressed.delete(e.key));
 
       window.addEventListener("beforeunload", () => {
-        clearInterval(loopId);
-        clearInterval(inputLoopId);
-        loopId = null;
-        inputLoopId = null;
+        stopLoops();
       });
 
+      const startButton = document.getElementById("start-btn");
+      if (startButton) startButton.addEventListener("click", startGame);
 
       renderUrl();
-      inputLoopId = setInterval(handleInput, 25);
-      loopId = setInterval(tick, 160);
     })();
   </script>
 </body>
