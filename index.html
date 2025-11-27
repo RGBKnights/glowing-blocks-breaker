@@ -24,23 +24,6 @@
       padding: 0.25rem 0.5rem;
       border-radius: 6px;
     }
-    button {
-      background: #1f2a44;
-      color: #e8edf7;
-      border: 1px solid #2f3c5f;
-      border-radius: 8px;
-      padding: 0.5rem 1rem;
-      cursor: pointer;
-      font-weight: 600;
-      transition: background 120ms ease, transform 120ms ease;
-    }
-    button:hover {
-      background: #273553;
-      transform: translateY(-1px);
-    }
-    button:active {
-      transform: translateY(0);
-    }
   </style>
 </head>
 <body>
@@ -49,11 +32,10 @@
     <p>Use <strong>↑</strong>/<strong>↓</strong> (or <strong>W</strong>/<strong>S</strong>) to move the single-dot paddle up and down the four braille rows. Press <strong>R</strong> to restart.</p>
     <p>The entire game renders inside the address bar by rewriting the URL each frame: the paddle hugs the left, the ball travels horizontally, and bricks sit on the right.</p>
     <p>If the URL looks wild, that's the point. Enjoy!</p>
-    <p><button id="reload-btn" type="button">Reload page (reset/block URL bar)</button></p>
   </main>
   <script>
     (() => {
-      const WIDTH = 32; // keep braille line short enough for tab title
+      const WIDTH = 16; // keep braille line short enough for tab title
       const HEIGHT = 4;
       const PADDLE_X = 0;
       const EMPTY_CHAR = String.fromCodePoint(0x2007); // figure space stays visible without %20 encoding
@@ -121,7 +103,7 @@
         });
 
         const renderLine = row.join("");
-        const frameLabel = `${renderLine}${state.over ? "-GAME-OVER" : ""}`;
+        const frameLabel = `${renderLine}${state.over ? "" : ""}`; // GAME-OVER
         const pathBase = "/TINY-BREAKOUT";
 
         const params = new URLSearchParams();
@@ -216,17 +198,6 @@
 
       window.addEventListener("keyup", (e) => pressed.delete(e.key));
 
-      const reloadBtn = document.getElementById("reload-btn");
-      if (reloadBtn) {
-        reloadBtn.addEventListener("click", () => {
-          if (loopId !== null) {
-            clearInterval(loopId);
-            loopId = null;
-          }
-          history.replaceState({}, "", `${location.origin}/`);
-          document.title = "Tiny Breakout URL";
-        });
-      }
 
       updatePath();
       loopId = setInterval(tick, 120);
